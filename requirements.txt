@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+gunicorn
+joblib
+scikit-learn
+pydantic
+spacy
