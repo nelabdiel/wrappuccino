@@ -11,7 +11,7 @@ This repository provides a simple, structured way for data scientists to deploy 
 
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 ```
 model_api_wrapper/
 │── models/              # Folder where users place their models (.pkl files)
