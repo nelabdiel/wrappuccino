@@ -1,19 +1,16 @@
 import joblib
 import os
 import importlib
+from typing import Optional
 
-# Load models and vectorizers
 MODEL_DIR = "models"
+PREPROCESSOR_DIR = "preprocessors"
 models = {}
 vectorizers = {}
 
-# Default preprocessing module (users should rename their script to match this)
-PREPROCESSING_MODULE = "app.my_preprocessing"
-
 def load_pipeline():
-    """Loads models, vectorizers, and the custom preprocessing script."""
+    """Loads models and vectorizers from disk."""
     global models, vectorizers
-
     models.clear()
     vectorizers.clear()
 
@@ -25,33 +22,36 @@ def load_pipeline():
             else:
                 models[name] = joblib.load(os.path.join(MODEL_DIR, filename))
 
-    # Dynamically import the custom preprocessing module
-    global preprocess_text
-    try:
-        preprocessing_module = importlib.import_module(PREPROCESSING_MODULE)
-        preprocess_text = preprocessing_module.custom_preprocess
-    except ModuleNotFoundError:
-        raise ValueError(f"Custom preprocessing module '{PREPROCESSING_MODULE}' not found. Please rename your script.")
+def list_preprocessors():
+    """Lists available preprocessing scripts in preprocessors/"""
+    return [
+        f[:-3] for f in os.listdir(PREPROCESSOR_DIR)
+        if f.endswith(".py") and not f.startswith("__")
+    ]
 
-# Load everything on startup
-load_pipeline()
+def run_pipeline(text: str, model_name: str, preprocessing_pipeline: Optional[str] = None):
+    """Runs preprocessing → vectorizer → model prediction"""
+    
+    # Optional preprocessing
+    if preprocessing_pipeline:
+        try:
+            module_path = f"preprocessors.{preprocessing_pipeline}"
+            module = importlib.import_module(module_path)
+            text = module.custom_preprocess(text)
+        except ModuleNotFoundError:
+            raise ValueError(f"Preprocessing script '{preprocessing_pipeline}' not found.")
+        except AttributeError:
+            raise ValueError(f"'{preprocessing_pipeline}' must define a 'custom_preprocess(text)' function.")
 
-def run_pipeline(text: str):
-    """Runs the full ETL pipeline for text input."""
-    # Preprocess the text using the custom function
-    processed_text = preprocess_text(text)
-
-    # Transform using vectorizer
+    # Vectorizer
     vec = vectorizers.get("text_vectorizer")
-    if vec:
-        features = vec.transform([processed_text]).toarray()
-    else:
-        raise ValueError("Vectorizer not found")
+    if not vec:
+        raise ValueError("Vectorizer not found.")
+    features = vec.transform([text]).toarray()
 
-    # Predict using model
-    model = models.get("text_model")
+    # Model
+    model = models.get(model_name)
     if not model:
-        raise ValueError("Model not found")
-
+        raise ValueError(f"Model '{model_name}' not found.")
     prediction = model.predict(features)
     return prediction.tolist()
