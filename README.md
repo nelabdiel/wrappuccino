@@ -6,26 +6,29 @@ This repository provides a simple, structured way for data scientists to deploy 
 - **Plug-and-play model deployment**: Just drop your `.pkl` models into the `models/` folder.
 - **Automatic API generation**: FastAPI automatically creates interactive API docs at `/docs`.
 - **Scalability**: Uses Gunicorn + Uvicorn workers for better performance.
-- **Customizable Preprocessing**: Users can modify `preprocessing.py` or create a custom preprocessing script.
+- **Customizable Preprocessing**: Users can create modular preprocessing scripts and select them per request.
 - **Containerized deployment**: Easily deploy using Docker.
 
 ---
 
-## Folder Structure
+## 📁 Folder Structure
 ```
 model_api_wrapper/
-│── models/              # Folder where users place their models (.pkl files)
+│── models/                 # Folder where users place their models (.pkl files)
 │   ├── text_model.pkl
 │   ├── text_vectorizer.pkl
-│── app/                 # FastAPI application
-│   ├── main.py          # API entry point
-│   ├── model_loader.py  # Handles dynamic model loading
-│   ├── pipeline.py      # Full ETL + inference pipeline
-│   ├── preprocessing_template.py  # Template for custom preprocessing
-│   ├── schemas.py       # Defines request/response schemas
-│── requirements.txt      # Dependencies (FastAPI, Gunicorn, etc.)
-│── Dockerfile           # Containerization setup
-│── README.md            # Documentation (this file)
+│   ├── iris_model.pkl      # <- Example test model
+│── preprocessors/          # Custom preprocessing scripts (user-defined)
+│   ├── my_preprocessing.py
+│   ├── regex_cleaner.py
+│── app/                    # FastAPI application
+│   ├── main.py             # API entry point
+│   ├── model_loader.py     # Handles dynamic model loading
+│   ├── pipeline.py         # Full ETL + inference pipeline
+│   ├── schemas.py          # Defines request/response schemas
+│── requirements.txt        # Dependencies (FastAPI, Gunicorn, etc.)
+│── Dockerfile              # Containerization setup
+│── README.md               # Documentation (this file)
 ```
 
 ---
@@ -40,21 +43,17 @@ pip install -r requirements.txt
 ### 2️⃣ Add Your Model
 - Place your **Pickle (.pkl) model files** inside the `models/` directory.
 - Ensure the models are trained using **scikit-learn** or a compatible framework.
-- Model names will be inferred from the filenames (e.g., `text_model.pkl` → `text_model`).
 
-### 3️⃣ Customize Preprocessing (Optional)
-- Use the provided **preprocessing template** (`preprocessing_template.py`).
-- Copy and rename it to `app/my_preprocessing.py`:
-  ```sh
-  cp app/preprocessing_template.py app/my_preprocessing.py
-  ```
-- Modify `custom_preprocess()` inside `my_preprocessing.py` to fit your model’s needs.
-- This script will run **before vectorization and model inference**.
+### 3️⃣ Add a Preprocessing Script (Optional)
+- Create your preprocessing script inside the `preprocessors/` folder.
+- Define a `custom_preprocess(text: str) -> str` function in the script.
+- Example: `preprocessors/my_preprocessing.py`
 
 ### 4️⃣ Run the API (Locally)
 ```sh
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
 The API will be accessible at:
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Redoc UI**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
@@ -79,20 +78,23 @@ docker run -p 8000:8000 -v $(pwd)/models:/app/models fastapi-model-api
 ---
 
 ## API Endpoints
+
 ### **1️⃣ List Available Models**
 **Endpoint:** `GET /models`
+
+#### Example Response:
 ```json
 {
-  "available_models": ["text_model", "another_model"]
+  "available_models": ["text_model", "iris_model"]
 }
 ```
 
-#### **Call from Command Line**
+#### Command Line:
 ```sh
-curl -X 'GET' 'http://localhost:8000/models' -H 'accept: application/json'
+curl -X GET "http://localhost:8000/models" -H "accept: application/json"
 ```
 
-#### **Call from Python (requests library)**
+#### Python:
 ```python
 import requests
 
@@ -100,63 +102,91 @@ response = requests.get("http://localhost:8000/models")
 print(response.json())
 ```
 
-### **2️⃣ Make a Prediction (Using a Specific Model)**
-**Endpoint:** `POST /predict`
+---
 
-**Request Body:**
+### **2️⃣ List Available Preprocessing Pipelines**
+**Endpoint:** `GET /preprocessors`
+
+#### Example Response:
 ```json
 {
-  "model_name": "text_model",
-  "features": [0.12, 0.34, 0.56]
+  "available_preprocessors": ["my_preprocessing", "regex_cleaner"]
 }
 ```
 
-#### **Call from Command Line**
+#### Command Line:
 ```sh
-curl -X 'POST' 'http://localhost:8000/predict' \
-  -H 'Content-Type: application/json' \
-  -d '{"model_name": "text_model", "features": [0.12, 0.34, 0.56]}'
+curl -X GET "http://localhost:8000/preprocessors" -H "accept: application/json"
 ```
 
-#### **Call from Python (requests library)**
+#### Python:
 ```python
 import requests
-import json
+
+response = requests.get("http://localhost:8000/preprocessors")
+print(response.json())
+```
+
+---
+
+### **3️⃣ Make a Prediction (Using a Specific Model)**
+**Endpoint:** `POST /predict`
+
+#### ✅ Example: `iris_model` without preprocessing
+```json
+{
+  "model_name": "iris_model",
+  "features": [5.1, 3.5, 1.4, 0.2]
+}
+```
+
+**Command Line:**
+```sh
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"model_name": "iris_model", "features": [5.1, 3.5, 1.4, 0.2]}'
+```
+
+**Python:**
+```python
+import requests
 
 data = {
-    "model_name": "text_model",
-    "features": [0.12, 0.34, 0.56]
+    "model_name": "iris_model",
+    "features": [5.1, 3.5, 1.4, 0.2]
 }
 response = requests.post("http://localhost:8000/predict", json=data)
 print(response.json())
 ```
 
-### **3️⃣ Make a Prediction (Using the Full Pipeline)**
-**Endpoint:** `POST /predict`
+---
 
-**Request Body:**
+#### ✅ Example: `text_model` with preprocessing pipeline
 ```json
 {
+  "model_name": "text_model",
+  "preprocessing_pipeline": "my_preprocessing",
   "use_pipeline": true,
-  "text": "This is an example sentence for classification."
+  "text": "This is an example sentence."
 }
 ```
 
-#### **Call from Command Line**
+**Command Line:**
 ```sh
-curl -X 'POST' 'http://localhost:8000/predict' \
-  -H 'Content-Type: application/json' \
-  -d '{"use_pipeline": true, "text": "This is an example sentence for classification."}'
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"model_name": "text_model", "preprocessing_pipeline": "my_preprocessing", "use_pipeline": true, "text": "This is an example sentence."}'
 ```
 
-#### **Call from Python (requests library)**
+**Python:**
 ```python
 import requests
-import json
 
 data = {
+    "model_name": "text_model",
+    "preprocessing_pipeline": "my_preprocessing",
     "use_pipeline": True,
-    "text": "This is an example sentence for classification."
+    "text": "This is an example sentence."
 }
 response = requests.post("http://localhost:8000/predict", json=data)
 print(response.json())
@@ -165,13 +195,14 @@ print(response.json())
 ---
 
 ## Troubleshooting
+
 **Model Not Found?**
 - Ensure the `.pkl` file is inside the `models/` folder.
 - Check that the model name in the request matches the filename.
 
-**Custom Preprocessing Not Applied?**
-- Ensure your custom preprocessing script is copied and renamed to `app/my_preprocessing.py`.
-- Make sure `pipeline.py` is correctly set to use `my_preprocessing.py`.
+**Preprocessing Script Not Found?**
+- Ensure your script is inside `preprocessors/` and named accordingly.
+- It must contain a `custom_preprocess(text: str)` function.
 
 **Docker Port Issue?**
 - Make sure port `8000` is available.
@@ -180,6 +211,5 @@ print(response.json())
 ---
 
 ## License
+
 This project is licensed under the MIT License.
-
-
