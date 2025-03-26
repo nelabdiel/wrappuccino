@@ -3,7 +3,7 @@
 This repository provides a simple, structured way for data scientists to deploy their machine learning models as REST APIs using FastAPI, Gunicorn, and Docker.
 
 ## Features
-- **Plug-and-play model deployment**: Just drop your `.pkl` models into the `models/` folder.
+- **Plug-and-play model deployment**: Just drop your `.pkl` or `.pth` models into the `models/` folder.
 - **Automatic API generation**: FastAPI automatically creates interactive API docs at `/docs`.
 - **Scalability**: Uses Gunicorn + Uvicorn workers for better performance.
 - **Customizable Preprocessing**: Users can create modular preprocessing scripts and select them per request.
@@ -14,10 +14,11 @@ This repository provides a simple, structured way for data scientists to deploy 
 ## 📁 Folder Structure
 ```
 model_api_wrapper/
-│── models/                 # Folder where users place their models (.pkl files)
+│── models/                 # Folder where users place their models (.pkl or .pth files)
 │   ├── text_model.pkl
 │   ├── text_vectorizer.pkl
 │   ├── iris_model.pkl      # <- Example test model
+│   ├── pytorch_model.pth   # <- PyTorch model (optional)
 │── preprocessors/          # Custom preprocessing scripts (user-defined)
 │   ├── my_preprocessing.py
 │   ├── regex_cleaner.py
@@ -40,9 +41,15 @@ model_api_wrapper/
 pip install -r requirements.txt
 ```
 
+> If using PyTorch models, make sure `torch` is included in `requirements.txt`:
+> ```txt
+> torch
+> ```
+
 ### 2️⃣ Add Your Model
-- Place your **Pickle (.pkl) model files** inside the `models/` directory.
-- Ensure the models are trained using **scikit-learn** or a compatible framework.
+- Place your **Pickle (.pkl)** or **PyTorch (.pth)** model files inside the `models/` directory.
+- `.pkl` files should be trained with **scikit-learn** or compatible.
+- `.pth` files must contain a full `torch.nn.Module`, not just a `state_dict()`.
 
 ### 3️⃣ Add a Preprocessing Script (Optional)
 - Create your preprocessing script inside the `preprocessors/` folder.
@@ -85,7 +92,7 @@ docker run -p 8000:8000 -v $(pwd)/models:/app/models fastapi-model-api
 #### Example Response:
 ```json
 {
-  "available_models": ["text_model", "iris_model"]
+  "available_models": ["text_model", "iris_model", "pytorch_model"]
 }
 ```
 
@@ -197,8 +204,12 @@ print(response.json())
 ## Troubleshooting
 
 **Model Not Found?**
-- Ensure the `.pkl` file is inside the `models/` folder.
-- Check that the model name in the request matches the filename.
+- Ensure the model file is inside the `models/` folder.
+- Make sure the model name in the request matches the file name (without extension).
+
+**PyTorch Model Not Working?**
+- Ensure the `.pth` file contains a full `torch.nn.Module` object, not just a `state_dict()`.
+- If you're using a `state_dict()`, you'll need a script to reconstruct and load the model manually.
 
 **Preprocessing Script Not Found?**
 - Ensure your script is inside `preprocessors/` and named accordingly.
@@ -213,3 +224,4 @@ print(response.json())
 ## License
 
 This project is licensed under the MIT License.
+
