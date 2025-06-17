@@ -1,227 +1,345 @@
-# Wrappuccino - FastAPI Model Deployment Wrapper
+# **Wrappuccino** — FastAPI ML Pipeline Wrapper
 
-This repository provides a simple, structured way for data scientists to deploy their machine learning models as REST APIs using FastAPI, Gunicorn, and Docker.
+Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model—all packaged into a single folder for clarity and reusability.
+
+---
 
 ## Features
-- **Plug-and-play model deployment**: Just drop your `.pkl` or `.pth` models into the `models/` folder.
-- **Automatic API generation**: FastAPI automatically creates interactive API docs at `/docs`.
-- **Scalability**: Uses Gunicorn + Uvicorn workers for better performance.
-- **Customizable Preprocessing**: Users can create modular preprocessing scripts and select them per request.
-- **Containerized deployment**: Easily deploy using Docker.
+
+* **Pipeline-based organization**: Each ML pipeline lives in its own subfolder under `pipelines/`
+* **Optional preprocessing**: Supports modular text transformations before vectorization
+* **Automatic API generation**: REST API with comprehensive endpoint documentation
+* **Scalable**: FastAPI with Gunicorn for production deployment
+* **Easy to extend**: Add new pipelines by simply creating folders with model files
 
 ---
 
-## 📁 Folder Structure
+## Project Structure
+
 ```
-model_api_wrapper/
-│── models/                 # Folder where users place their models (.pkl or .pth files)
-│   ├── text_model.pkl
-│   ├── text_vectorizer.pkl
-│   ├── iris_model.pkl      # <- Example test model
-│   ├── pytorch_model.pth   # <- PyTorch model (optional)
-│── preprocessors/          # Custom preprocessing scripts (user-defined)
-│   ├── my_preprocessing.py
-│   ├── regex_cleaner.py
-│── app/                    # FastAPI application
-│   ├── main.py             # API entry point
-│   ├── model_loader.py     # Handles dynamic model loading
-│   ├── pipeline.py         # Full ETL + inference pipeline
-│   ├── schemas.py          # Defines request/response schemas
-│── requirements.txt        # Dependencies (FastAPI, Gunicorn, etc.)
-│── Dockerfile              # Containerization setup
-│── README.md               # Documentation (this file)
+wrappuccino/
+├── pipelines/
+│   ├── sentiment_classification/
+│   │   ├── preprocessing.py       # Custom text preprocessing
+│   │   ├── vectorizer.pkl         # TF-IDF vectorizer
+│   │   └── model.pkl              # Random Forest classifier
+│   ├── iris_classifier/
+│   │   └── model.pkl              # Iris dataset classifier
+├── app.py                         # Main FastAPI application
+├── main.py                        # Application entry point
+├── model_loader.py                # ML model loading utilities
+├── pipeline.py                    # Pipeline discovery and validation
+└── README.md                      # This file
 ```
 
 ---
 
-## How to Use
+## Quick Start
 
-### 1️⃣ Install Dependencies (For Local Development)
-```sh
-pip install -r requirements.txt
+### 1) Install Dependencies
+
+The project uses `uv` for dependency management. Dependencies are automatically installed:
+
+- FastAPI
+- uvicorn
+- scikit-learn
+- numpy
+- pydantic
+- requests
+
+### 2) Run the API Server
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 5000 --reload
 ```
 
-> If using PyTorch models, make sure `torch` is included in `requirements.txt`:
-> ```txt
-> torch
-> ```
-
-### 2️⃣ Add Your Model
-- Place your **Pickle (.pkl)** or **PyTorch (.pth)** model files inside the `models/` directory.
-- `.pkl` files should be trained with **scikit-learn** or compatible.
-- `.pth` files must contain a full `torch.nn.Module`, not just a `state_dict()`.
-
-### 3️⃣ Add a Preprocessing Script (Optional)
-- Create your preprocessing script inside the `preprocessors/` folder.
-- Define a `custom_preprocess(text: str) -> str` function in the script.
-- Example: `preprocessors/my_preprocessing.py`
-
-### 4️⃣ Run the API (Locally)
-```sh
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+Or alternatively:
+```bash
+python app.py
 ```
 
-The API will be accessible at:
-- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Redoc UI**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+### 3) Access the API
 
-### 5️⃣ Run with Gunicorn (Production-Ready)
-```sh
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000
-```
+The server will start on `http://localhost:5000` with the following endpoints:
 
-### 6️⃣ Deploy with Docker
+- **API Documentation**: `http://localhost:5000/docs` (Interactive Swagger UI)
+- **ReDoc Documentation**: `http://localhost:5000/redoc` (Alternative documentation)
+- **Health Check**: `http://localhost:5000/health`
+- **List Pipelines**: `http://localhost:5000/pipelines`
+- **Make Predictions**: `http://localhost:5000/predict`
 
-#### Build the Docker Image
-```sh
-docker build -t fastapi-model-api .
-```
-
-#### Run the Container
-```sh
-docker run -p 8000:8000 -v $(pwd)/models:/app/models fastapi-model-api
-```
+## API Usage Examples
 
 ---
 
 ## API Endpoints
 
-### **1️⃣ List Available Models**
-**Endpoint:** `GET /models`
+### `GET /pipelines`
 
-#### Example Response:
+Returns a list of available pipeline folders.
+
+**Example Response:**
 ```json
 {
-  "available_models": ["text_model", "iris_model", "pytorch_model"]
+  "available_pipelines": ["iris_classifier", "sentiment_classification"]
 }
 ```
 
-#### Command Line:
-```sh
-curl -X GET "http://localhost:8000/models" -H "accept: application/json"
-```
+### `POST /predict`
 
-#### Python:
-```python
-import requests
+Use this endpoint to run predictions via ML pipelines.
 
-response = requests.get("http://localhost:8000/models")
-print(response.json())
-```
+#### Request Body for Text Pipeline:
 
----
-
-### **2️⃣ List Available Preprocessing Pipelines**
-**Endpoint:** `GET /preprocessors`
-
-#### Example Response:
 ```json
 {
-  "available_preprocessors": ["my_preprocessing", "regex_cleaner"]
+  "pipeline_name": "sentiment_classification",
+  "text": "I love this product! It works perfectly."
 }
 ```
 
-#### Command Line:
-```sh
-curl -X GET "http://localhost:8000/preprocessors" -H "accept: application/json"
-```
+#### Request Body for Numeric Pipeline:
 
-#### Python:
-```python
-import requests
-
-response = requests.get("http://localhost:8000/preprocessors")
-print(response.json())
-```
-
----
-
-### **3️⃣ Make a Prediction (Using a Specific Model)**
-**Endpoint:** `POST /predict`
-
-#### ✅ Example: `iris_model` without preprocessing
 ```json
 {
-  "model_name": "iris_model",
+  "pipeline_name": "iris_classifier",
   "features": [5.1, 3.5, 1.4, 0.2]
 }
 ```
 
-**Command Line:**
-```sh
-curl -X POST "http://localhost:8000/predict" \
-  -H "Content-Type: application/json" \
-  -d '{"model_name": "iris_model", "features": [5.1, 3.5, 1.4, 0.2]}'
+#### Example Response:
+
+```json
+{
+  "pipeline_name": "sentiment_classification",
+  "prediction": 1,
+  "confidence": 0.93,
+  "preprocessing_applied": true,
+  "vectorizer_applied": true
+}
 ```
 
-**Python:**
-```python
-import requests
+### `GET /health`
 
-data = {
-    "model_name": "iris_model",
-    "features": [5.1, 3.5, 1.4, 0.2]
+Health check endpoint for monitoring.
+
+**Example Response:**
+```json
+{
+  "status": "healthy",
+  "pipelines_loaded": 2
 }
-response = requests.post("http://localhost:8000/predict", json=data)
-print(response.json())
 ```
 
 ---
 
-#### ✅ Example: `text_model` with preprocessing pipeline
-```json
-{
-  "model_name": "text_model",
-  "preprocessing_pipeline": "my_preprocessing",
-  "use_pipeline": true,
-  "text": "This is an example sentence."
-}
+## Adding New Pipelines
+
+To add a new ML pipeline, create a folder under `pipelines/` with the following structure:
+
+```
+pipelines/your_pipeline_name/
+├── model.pkl              # Required: Your trained ML model
+├── vectorizer.pkl         # Optional: For text processing
+└── preprocessing.py       # Optional: Custom preprocessing functions
 ```
 
-**Command Line:**
-```sh
-curl -X POST "http://localhost:8000/predict" \
+### Pipeline Components
+
+1. **`model.pkl`** (Required)
+   - Any scikit-learn compatible model saved with pickle
+   - Must implement `.predict()` method
+   - Optional `.predict_proba()` for confidence scores
+
+2. **`vectorizer.pkl`** (Optional)
+   - Text vectorizer (TF-IDF, CountVectorizer, etc.)
+   - Used for converting text to numerical features
+   - Must implement `.transform()` method
+
+3. **`preprocessing.py`** (Optional)
+   - Must define a `custom_preprocess(text: str) -> str` function
+   - Applied before vectorization
+   - Used for domain-specific text cleaning and normalization
+
+### Example Pipeline Creation
+
+```python
+# Create and save a model
+from sklearn.ensemble import RandomForestClassifier
+import pickle
+
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+
+with open('pipelines/my_pipeline/model.pkl', 'wb') as f:
+    pickle.dump(model, f)
+```
+
+The pipeline will be automatically discovered and available via the API.
+
+---
+
+## 🧪 Testing the API
+
+### Using curl
+
+```bash
+# Test root endpoint
+curl http://localhost:5000/
+
+# List available pipelines
+curl http://localhost:5000/pipelines
+
+# Make a prediction with numeric features
+curl -X POST http://localhost:5000/predict \
   -H "Content-Type: application/json" \
-  -d '{"model_name": "text_model", "preprocessing_pipeline": "my_preprocessing", "use_pipeline": true, "text": "This is an example sentence."}'
+  -d '{"pipeline_name": "iris_classifier", "features": [5.1, 3.5, 1.4, 0.2]}'
+
+# Make a prediction with text
+curl -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_name": "sentiment_classification", "Today's working was incredible. I couldn't be happier!"}'
 ```
 
-**Python:**
+### Using Python
+
 ```python
 import requests
 
-data = {
-    "model_name": "text_model",
-    "preprocessing_pipeline": "my_preprocessing",
-    "use_pipeline": True,
-    "text": "This is an example sentence."
+# Test numeric prediction
+iris_data = {
+    "pipeline_name": "iris_classifier",
+    "features": [5.1, 3.5, 1.4, 0.2]
 }
-response = requests.post("http://localhost:8000/predict", json=data)
+
+# Send request to the prediction endpoint
+response = requests.post("http://localhost:5000/predict", json=iris_data)
 print(response.json())
+
+# Expected response
+{
+  "prediction": 0,
+  "confidence": 0.981583497609436,
+  "preprocessing_applied": false,
+  "vectorizer_applied": false
+}
+
+# Define input text for a sentiment model
+text_data = {
+    "pipeline_name": "sentiment_classification",
+    "text": "Today's working was incredible. I couldn't be happier!"
+}
+
+# Send request to the prediction endpoint
+response = requests.post("http://localhost:5000/predict", json=text_data)
+print(response.json())
+
+# Expected response
+{
+  "prediction": 1,
+  "confidence": 0.6177903691067675,
+  "preprocessing_applied": true,
+  "vectorizer_applied": true
+}
+
 ```
+
+---
+
+## Sample Pipelines
+
+### Iris Classifier
+- **Type**: Numeric features
+- **Input**: 4 numeric features (sepal length, sepal width, petal length, petal width)
+- **Output**: Species classification (0=setosa, 1=versicolor, 2=virginica)
+- **Model**: Random Forest Classifier
+
+### Sentiment Classification
+- **Type**: Text processing
+- **Input**: Text expressing opinions or sentiments
+- **Output**: Binary classification (0=negative sentiment, 1=positive sentiment)
+- **Features**: Custom preprocessing + TF-IDF vectorization + Random Forest
+- **Preprocessing**: Text cleaning, lowercasing, special character removal
+
+---
+
+## Production Deployment
+
+For production deployment, use Gunicorn with proper configuration:
+
+```bash
+gunicorn --bind 0.0.0.0:5000 --worker-class sync --workers 4 main:app
+```
+
 
 ---
 
 ## Troubleshooting
 
-**Model Not Found?**
-- Ensure the model file is inside the `models/` folder.
-- Make sure the model name in the request matches the file name (without extension).
+### Common Issues
 
-**PyTorch Model Not Working?**
-- Ensure the `.pth` file contains a full `torch.nn.Module` object, not just a `state_dict()`.
-- If you're using a `state_dict()`, you'll need a script to reconstruct and load the model manually.
+1. **Pipeline not found**
+   - Ensure `model.pkl` exists in the pipeline folder
+   - Check that the folder name matches the `pipeline_name` in requests
 
-**Preprocessing Script Not Found?**
-- Ensure your script is inside `preprocessors/` and named accordingly.
-- It must contain a `custom_preprocess(text: str)` function.
+2. **Preprocessing errors**
+   - Verify `preprocessing.py` defines `custom_preprocess(text: str) -> str`
+   - Check for import errors in the preprocessing module
 
-**Docker Port Issue?**
-- Make sure port `8000` is available.
-- Try changing the port mapping when running Docker (`-p 8080:8000`).
+3. **Vectorizer issues**
+   - Ensure vectorizer is trained and saved properly
+   - Verify it implements the `.transform()` method
+
+4. **Model prediction errors**
+   - Check that input features match the model's expected format
+   - Ensure the model was trained and saved correctly
+
+### Logs
+
+Server logs provide detailed information about:
+- Pipeline discovery and validation
+- Model loading success/failure
+- Prediction request processing
+- Error details and stack traces
+
+---
+
+## API Response Format
+
+All prediction responses follow this format:
+
+```json
+{
+  "pipeline_name": "string",           // Name of the pipeline used
+  "prediction": "any",                 // Model prediction result
+  "confidence": 0.95,                  // Confidence score (0-1, optional)
+  "preprocessing_applied": true,       // Whether preprocessing was used
+  "vectorizer_applied": true          // Whether vectorization was applied
+}
+```
+
+Error responses:
+
+```json
+{
+  "error": "string"                    // Error description
+}
+```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is open source and available under the MIT License.
 
+---
+
+## Contributing
+
+To contribute to Wrappuccino:
+
+1. Fork the repository
+2. Create your feature branch
+3. Add your ML pipeline following the structure guidelines
+4. Test your pipeline with the API
+5. Submit a pull request
