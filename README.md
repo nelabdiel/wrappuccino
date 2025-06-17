@@ -38,7 +38,7 @@ wrappuccino/
 
 ### 1) Install Dependencies
 
-The project uses `uv` for dependency management. Dependencies are automatically installed:
+Dependencies are automatically installed:
 
 - FastAPI
 - uvicorn
@@ -179,7 +179,7 @@ The pipeline will be automatically discovered and available via the API.
 
 ---
 
-## 🧪 Testing the API
+## Testing the API
 
 ### Using curl
 
