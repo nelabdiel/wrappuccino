@@ -1,11 +1,12 @@
 # **Wrappuccino** — FastAPI ML Pipeline Wrapper
 
-Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model—all packaged into a single folder for clarity and reusability.
+Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model (scikit-learn, PyTorch, or ONNX)—all packaged into a single folder for clarity and reusability.
 
 ---
 
 ## Features
 
+* **Multi-framework support**: Deploy scikit-learn (.pkl), PyTorch (.pth/.pt), and ONNX (.onnx) models
 * **Pipeline-based organization**: Each ML pipeline lives in its own subfolder under `pipelines/`
 * **Optional preprocessing**: Supports modular text transformations before vectorization
 * **Automatic API generation**: REST API with comprehensive endpoint documentation
@@ -19,17 +20,28 @@ Wrappuccino provides a clean, modular way to deploy full machine learning pipeli
 ```
 wrappuccino/
 ├── pipelines/
-│   ├── sentiment_classification/
-│   │   ├── preprocessing.py       # Custom text preprocessing
-│   │   ├── vectorizer.pkl         # TF-IDF vectorizer
-│   │   └── model.pkl              # Random Forest classifier
-│   ├── iris_classifier/
-│   │   └── model.pkl              # Iris dataset classifier
-├── app.py                         # Main FastAPI application
-├── main.py                        # Application entry point
-├── model_loader.py                # ML model loading utilities
-├── pipeline.py                    # Pipeline discovery and validation
-└── README.md                      # This file
+│   ├── sentiment_classification/     # Scikit-learn pipeline
+│   │   ├── preprocessing.py          # Custom text preprocessing
+│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
+│   │   └── model.pkl                 # Random Forest classifier
+│   ├── pytorch_sentiment/            # PyTorch pipeline
+│   │   ├── preprocessing.py          # Custom text preprocessing
+│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
+│   │   ├── model.pth                 # PyTorch neural network
+│   │   ├── model_architecture.py     # Model class definition
+│   │   └── label_encoder.pkl         # Label mapping
+│   ├── onnx_sentiment/               # ONNX pipeline
+│   │   ├── preprocessing.py          # Custom text preprocessing
+│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
+│   │   ├── model.onnx                # ONNX optimized model
+│   │   └── label_encoder.pkl         # Label mapping
+│   └── iris_classifier/              # Simple numeric pipeline
+│       └── model.pkl                 # Iris dataset classifier
+├── app.py                            # Main FastAPI application
+├── main.py                           # Application entry point
+├── model_loader.py                   # ML model loading utilities
+├── pipeline.py                       # Pipeline discovery and validation
+└── README.md                         # This file
 ```
 
 ---
@@ -38,7 +50,7 @@ wrappuccino/
 
 ### 1) Install Dependencies
 
-Dependencies are automatically installed:
+Core dependencies are automatically installed:
 
 - FastAPI
 - uvicorn
@@ -46,6 +58,22 @@ Dependencies are automatically installed:
 - numpy
 - pydantic
 - requests
+- joblib
+
+**For PyTorch models (.pth/.pt):**
+```bash
+pip install torch torchvision
+```
+
+**For ONNX models (.onnx):**
+```bash
+pip install onnx onnxruntime
+```
+
+**Optional conversion tools:**
+```bash
+pip install onnxmltools skl2onnx  # Convert sklearn to ONNX
+```
 
 ### 2) Run the API Server
 
@@ -94,7 +122,7 @@ Use this endpoint to run predictions via ML pipelines.
 ```json
 {
   "pipeline_name": "sentiment_classification",
-  "text": "I love this product! It works perfectly."
+  "text": "Today's working was incredible. I couldn't be happier!"
 }
 ```
 
@@ -137,42 +165,100 @@ Health check endpoint for monitoring.
 
 To add a new ML pipeline, create a folder under `pipelines/` with the following structure:
 
+### Scikit-learn Pipeline:
 ```
-pipelines/your_pipeline_name/
-├── model.pkl              # Required: Your trained ML model
+pipelines/your_sklearn_pipeline/
+├── model.pkl              # Required: Trained sklearn model
+├── vectorizer.pkl         # Optional: For text processing
+└── preprocessing.py       # Optional: Custom preprocessing functions
+```
+
+### PyTorch Pipeline:
+```
+pipelines/your_pytorch_pipeline/
+├── model.pth              # Required: PyTorch model (.pth or .pt)
+├── model_architecture.py  # Required if using state dict
+├── label_encoder.pkl      # Optional: Label mapping
+├── vectorizer.pkl         # Optional: For text processing
+└── preprocessing.py       # Optional: Custom preprocessing functions
+```
+
+### ONNX Pipeline:
+```
+pipelines/your_onnx_pipeline/
+├── model.onnx             # Required: ONNX model file
+├── label_encoder.pkl      # Optional: Label mapping
 ├── vectorizer.pkl         # Optional: For text processing
 └── preprocessing.py       # Optional: Custom preprocessing functions
 ```
 
 ### Pipeline Components
 
-1. **`model.pkl`** (Required)
-   - Any scikit-learn compatible model saved with pickle
-   - Must implement `.predict()` method
-   - Optional `.predict_proba()` for confidence scores
+#### Model Files (Required - One of these):
+1. **`model.pkl`** - Scikit-learn model saved with pickle/joblib
+2. **`model.pth` or `model.pt`** - PyTorch model (full model or state dict)
+3. **`model.onnx`** - ONNX optimized model for cross-platform deployment
 
-2. **`vectorizer.pkl`** (Optional)
+#### Optional Components:
+4. **`model_architecture.py`** (PyTorch only)
+   - Required if saving PyTorch state dict instead of full model
+   - Must define `create_model()` function that returns model instance
+
+5. **`label_encoder.pkl`** (PyTorch/ONNX)
+   - Maps numeric model outputs to meaningful labels
+   - Used for classification tasks with string labels
+
+6. **`vectorizer.pkl`** (All model types)
    - Text vectorizer (TF-IDF, CountVectorizer, etc.)
-   - Used for converting text to numerical features
-   - Must implement `.transform()` method
+   - Converts text to numerical features for the model
 
-3. **`preprocessing.py`** (Optional)
+7. **`preprocessing.py`** (All model types)
    - Must define a `custom_preprocess(text: str) -> str` function
-   - Applied before vectorization
-   - Used for domain-specific text cleaning and normalization
+   - Applied before vectorization for domain-specific text cleaning
 
 ### Example Pipeline Creation
 
+#### Scikit-learn Model:
 ```python
-# Create and save a model
 from sklearn.ensemble import RandomForestClassifier
-import pickle
+import joblib
 
+# Train and save model
 model = RandomForestClassifier()
 model.fit(X_train, y_train)
+joblib.dump(model, 'pipelines/my_sklearn_pipeline/model.pkl')
+```
 
-with open('pipelines/my_pipeline/model.pkl', 'wb') as f:
-    pickle.dump(model, f)
+#### PyTorch Model:
+```python
+import torch
+import torch.nn as nn
+
+# Define model architecture
+class SentimentClassifier(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super().__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+    
+    def forward(self, x):
+        return self.fc2(self.relu(self.fc1(x)))
+
+# Save model
+model = SentimentClassifier(1000, 128, 2)
+torch.save(model, 'pipelines/my_pytorch_pipeline/model.pth')
+```
+
+#### ONNX Conversion:
+```python
+import torch.onnx
+
+# Convert PyTorch to ONNX
+dummy_input = torch.randn(1, 1000)
+torch.onnx.export(pytorch_model, dummy_input, 
+                  'pipelines/my_onnx_pipeline/model.onnx',
+                  input_names=['input'], output_names=['output'])
 ```
 
 The pipeline will be automatically discovered and available via the API.
@@ -248,18 +334,108 @@ print(response.json())
 
 ## Sample Pipelines
 
-### Iris Classifier
+### Iris Classifier (Scikit-learn)
 - **Type**: Numeric features
+- **Model**: `model.pkl` - Random Forest Classifier
 - **Input**: 4 numeric features (sepal length, sepal width, petal length, petal width)
 - **Output**: Species classification (0=setosa, 1=versicolor, 2=virginica)
-- **Model**: Random Forest Classifier
 
-### Sentiment Classification
-- **Type**: Text processing
+### Sentiment Classification (Scikit-learn)
+- **Type**: Text processing with full pipeline
+- **Model**: `model.pkl` - Random Forest Classifier
+- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.pkl`
 - **Input**: Text expressing opinions or sentiments
 - **Output**: Binary classification (0=negative sentiment, 1=positive sentiment)
-- **Features**: Custom preprocessing + TF-IDF vectorization + Random Forest
-- **Preprocessing**: Text cleaning, lowercasing, special character removal
+- **Pipeline**: Text cleaning → TF-IDF vectorization → Classification
+
+### PyTorch Sentiment Model (Example)
+- **Type**: Deep learning text classification
+- **Model**: `model.pth` - Neural Network
+- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.pth` + `label_encoder.pkl`
+- **Input**: Text data
+- **Output**: Classified sentiment with confidence scores
+- **Pipeline**: Text cleaning → TF-IDF → Neural network → Label decoding
+
+### ONNX Optimized Model (Example)
+- **Type**: Cross-platform optimized inference
+- **Model**: `model.onnx` - Converted from PyTorch/TensorFlow
+- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.onnx` + `label_encoder.pkl`
+- **Input**: Any supported input format
+- **Output**: Fast, optimized predictions
+- **Pipeline**: Preprocessing → Vectorization → ONNX inference → Label mapping
+
+---
+
+## Universal Pipeline Architecture
+
+**You're absolutely correct!** All model types (scikit-learn, PyTorch, ONNX) follow the same modular pipeline structure:
+
+```
+Common Pipeline Flow:
+Text Input → preprocessing.py → vectorizer.pkl → model.{pkl|pth|onnx} → label_encoder.pkl → Final Output
+```
+
+### Pipeline Components Work Identically:
+
+1. **`preprocessing.py`** - Same text cleaning function across all model types
+2. **`vectorizer.pkl`** - Same TF-IDF/text vectorization for all models  
+3. **`model.*`** - Different formats but same prediction interface
+4. **`label_encoder.pkl`** - Same label mapping for PyTorch/ONNX models
+
+### Example: Sentiment Analysis Across Frameworks
+
+All three implementations use identical preprocessing and vectorization:
+
+**Scikit-learn Pipeline:**
+```
+pipelines/sklearn_sentiment/
+├── preprocessing.py      # Same cleaning function
+├── vectorizer.pkl        # Same TF-IDF vectorizer
+└── model.pkl            # RandomForest classifier
+```
+
+**PyTorch Pipeline:**
+```
+pipelines/pytorch_sentiment/
+├── preprocessing.py      # Identical cleaning function
+├── vectorizer.pkl        # Same TF-IDF vectorizer
+├── model.pth            # Neural network
+└── label_encoder.pkl    # Maps 0/1 to negative/positive
+```
+
+**ONNX Pipeline:**
+```
+pipelines/onnx_sentiment/
+├── preprocessing.py      # Identical cleaning function
+├── vectorizer.pkl        # Same TF-IDF vectorizer  
+├── model.onnx           # Optimized version of any model
+└── label_encoder.pkl    # Same label mapping
+```
+
+### Prediction Flow Example:
+
+```python
+# Same for all model types:
+text = "I love this product!"
+
+# 1. Preprocessing (identical)
+clean_text = custom_preprocess(text)  # "i love this product"
+
+# 2. Vectorization (identical) 
+features = vectorizer.transform([clean_text])  # [0.2, 0.8, 0.1, ...]
+
+# 3. Model prediction (framework-specific)
+prediction = model.predict(features)  # 1
+
+# 4. Label decoding (PyTorch/ONNX only)
+label = label_encoder.inverse_transform([prediction])  # "positive"
+```
+
+This modular design allows you to:
+- **Prototype** with scikit-learn
+- **Upgrade** to PyTorch for better accuracy
+- **Deploy** with ONNX for production performance
+- **Reuse** preprocessing and vectorization components
 
 ---
 

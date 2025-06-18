@@ -1,3 +1,3 @@
 .ipynb_checkpoints/
-
+__pycache__/
 pipelines/sentiment_classification/__pycache__/preprocessing.cpython-311.pyc

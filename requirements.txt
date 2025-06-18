@@ -4,3 +4,6 @@ gunicorn
 joblib
 scikit-learn
 pydantic
+torch 
+torchvision
+onnx onnxruntime

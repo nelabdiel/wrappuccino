@@ -19,21 +19,35 @@ class PipelineConfig:
         self.has_model = False
         self.has_vectorizer = False
         self.has_preprocessing = False
+        self.has_label_encoder = False
         self.model_path: Optional[Path] = None
         self.vectorizer_path: Optional[Path] = None
         self.preprocessing_path: Optional[Path] = None
+        self.label_encoder_path: Optional[Path] = None
+        self.model_type: str = "sklearn"  # sklearn, pytorch, onnx
         
         self._validate_pipeline()
     
     def _validate_pipeline(self):
         """Validate pipeline components and set availability flags."""
-        # Check for required model file
-        model_file = self.path / "model.pkl"
-        if model_file.exists():
-            self.has_model = True
-            self.model_path = model_file
-        else:
-            raise ValueError(f"Pipeline '{self.name}' missing required model.pkl file")
+        # Check for model files in order of preference: sklearn -> pytorch -> onnx
+        model_files = [
+            ("model.pkl", "sklearn"),
+            ("model.pth", "pytorch"),
+            ("model.pt", "pytorch"),
+            ("model.onnx", "onnx")
+        ]
+        
+        for filename, model_type in model_files:
+            model_file = self.path / filename
+            if model_file.exists():
+                self.has_model = True
+                self.model_path = model_file
+                self.model_type = model_type
+                break
+        
+        if not self.has_model:
+            raise ValueError(f"Pipeline '{self.name}' missing required model file (.pkl, .pth, .pt, or .onnx)")
         
         # Check for optional vectorizer
         vectorizer_file = self.path / "vectorizer.pkl"
@@ -47,6 +61,12 @@ class PipelineConfig:
             self.has_preprocessing = True
             self.preprocessing_path = preprocessing_file
         
+        # Check for optional label encoder (for PyTorch/ONNX models)
+        label_encoder_file = self.path / "label_encoder.pkl"
+        if label_encoder_file.exists():
+            self.has_label_encoder = True
+            self.label_encoder_path = label_encoder_file
+        
         logger.info(f"Pipeline '{self.name}' validated - Model: ✓, Vectorizer: {'✓' if self.has_vectorizer else '✗'}, Preprocessing: {'✓' if self.has_preprocessing else '✗'}")
     
     def to_dict(self) -> Dict[str, Any]:
@@ -57,9 +77,12 @@ class PipelineConfig:
             "has_model": self.has_model,
             "has_vectorizer": self.has_vectorizer,
             "has_preprocessing": self.has_preprocessing,
+            "has_label_encoder": self.has_label_encoder,
+            "model_type": self.model_type,
             "model_path": str(self.model_path) if self.model_path else None,
             "vectorizer_path": str(self.vectorizer_path) if self.vectorizer_path else None,
-            "preprocessing_path": str(self.preprocessing_path) if self.preprocessing_path else None
+            "preprocessing_path": str(self.preprocessing_path) if self.preprocessing_path else None,
+            "label_encoder_path": str(self.label_encoder_path) if self.label_encoder_path else None
         }
 
 class PipelineManager:
