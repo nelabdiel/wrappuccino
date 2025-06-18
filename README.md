@@ -6,6 +6,8 @@
 
 Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model (scikit-learn, PyTorch, or ONNX)—all packaged into a single folder for clarity and reusability.
 
+Wrappuccino’s architecture allows you to **serve multiple models or pipelines simultaneously** through the same API endpoint. Whether you’re A/B testing different versions, comparing frameworks (scikit-learn vs. PyTorch vs. ONNX), or simply offering multiple services (e.g. classification, regression, sentiment analysis), Wrappuccino makes it easy to manage and switch between them without duplicating infrastructure.
+
 ---
 
 ## Features
