@@ -372,78 +372,7 @@ print(response.json())
 
 ---
 
-## Universal Pipeline Architecture
 
-**You're absolutely correct!** All model types (scikit-learn, PyTorch, ONNX) follow the same modular pipeline structure:
-
-```
-Common Pipeline Flow:
-Text Input → preprocessing.py → vectorizer.pkl → model.{pkl|pth|onnx} → label_encoder.pkl → Final Output
-```
-
-### Pipeline Components Work Identically:
-
-1. **`preprocessing.py`** - Same text cleaning function across all model types
-2. **`vectorizer.pkl`** - Same TF-IDF/text vectorization for all models  
-3. **`model.*`** - Different formats but same prediction interface
-4. **`label_encoder.pkl`** - Same label mapping for PyTorch/ONNX models
-
-### Example: Sentiment Analysis Across Frameworks
-
-All three implementations use identical preprocessing and vectorization:
-
-**Scikit-learn Pipeline:**
-```
-pipelines/sklearn_sentiment/
-├── preprocessing.py      # Same cleaning function
-├── vectorizer.pkl        # Same TF-IDF vectorizer
-└── model.pkl            # RandomForest classifier
-```
-
-**PyTorch Pipeline:**
-```
-pipelines/pytorch_sentiment/
-├── preprocessing.py      # Identical cleaning function
-├── vectorizer.pkl        # Same TF-IDF vectorizer
-├── model.pth            # Neural network
-└── label_encoder.pkl    # Maps 0/1 to negative/positive
-```
-
-**ONNX Pipeline:**
-```
-pipelines/onnx_sentiment/
-├── preprocessing.py      # Identical cleaning function
-├── vectorizer.pkl        # Same TF-IDF vectorizer  
-├── model.onnx           # Optimized version of any model
-└── label_encoder.pkl    # Same label mapping
-```
-
-### Prediction Flow Example:
-
-```python
-# Same for all model types:
-text = "I love this product!"
-
-# 1. Preprocessing (identical)
-clean_text = custom_preprocess(text)  # "i love this product"
-
-# 2. Vectorization (identical) 
-features = vectorizer.transform([clean_text])  # [0.2, 0.8, 0.1, ...]
-
-# 3. Model prediction (framework-specific)
-prediction = model.predict(features)  # 1
-
-# 4. Label decoding (PyTorch/ONNX only)
-label = label_encoder.inverse_transform([prediction])  # "positive"
-```
-
-This modular design allows you to:
-- **Prototype** with scikit-learn
-- **Upgrade** to PyTorch for better accuracy
-- **Deploy** with ONNX for production performance
-- **Reuse** preprocessing and vectorization components
-
----
 
 ## Production Deployment
 
@@ -486,29 +415,6 @@ Server logs provide detailed information about:
 
 ---
 
-## API Response Format
-
-All prediction responses follow this format:
-
-```json
-{
-  "pipeline_name": "string",           // Name of the pipeline used
-  "prediction": "any",                 // Model prediction result
-  "confidence": 0.95,                  // Confidence score (0-1, optional)
-  "preprocessing_applied": true,       // Whether preprocessing was used
-  "vectorizer_applied": true          // Whether vectorization was applied
-}
-```
-
-Error responses:
-
-```json
-{
-  "error": "string"                    // Error description
-}
-```
-
----
 
 ## License
 
