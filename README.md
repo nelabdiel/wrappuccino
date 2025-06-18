@@ -1,5 +1,9 @@
 # **Wrappuccino** — FastAPI ML Pipeline Wrapper
 
+<p align="center">
+  <img src="wrappuccino_logo.png" alt="Wrappuccino Logo" width="200"/>
+</p>
+
 Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model (scikit-learn, PyTorch, or ONNX)—all packaged into a single folder for clarity and reusability.
 
 ---
