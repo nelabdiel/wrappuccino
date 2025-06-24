@@ -100,12 +100,18 @@ class ModelLoader:
         """Load PyTorch model from .pth or .pt file."""
         try:
             import torch
+        except ImportError:
+            raise ValueError(
+                "PyTorch not installed - required for .pth/.pt models. Install with: pip install torch")
+        
+        try:
             device = torch.device('cpu')  # Use CPU for inference
             
             # Check if model architecture script exists
             arch_file = self.config.model_path.parent / "model_architecture.py"
             
             if arch_file.exists():
+                logger.info("Found model_architecture.py - loading complex PyTorch model")
                 # Load architecture script first
                 spec = importlib.util.spec_from_file_location(
                     "model_architecture", arch_file)
@@ -146,12 +152,13 @@ class ModelLoader:
             self.model.eval()  # Set to evaluation mode
             logger.info(f"PyTorch model loaded successfully from {self.config.model_path}")
 
-        except ImportError:
-            raise ValueError(
-                "PyTorch not installed - required for .pth/.pt models")
         except Exception as e:
             logger.error(f"Failed to load PyTorch model: {str(e)}")
-            raise ValueError(f"PyTorch model loading failed: {str(e)}")
+            # Provide more specific error messages
+            if "transformers" in str(e).lower():
+                raise ValueError(f"PyTorch model loading failed: {str(e)}. Install with: pip install transformers")
+            else:
+                raise ValueError(f"PyTorch model loading failed: {str(e)}")
 
     def _load_onnx_model(self):
         """Load ONNX model from .onnx file."""
