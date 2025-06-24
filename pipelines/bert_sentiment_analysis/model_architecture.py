@@ -5,17 +5,16 @@ This script defines how to create and load a BERT model for the pipeline.
 import torch
 import pickle
 from pathlib import Path
-try:
-    from transformers import BertForSequenceClassification, BertTokenizer
-except ImportError:
-    raise ImportError("transformers library required for BERT models. Install with: pip install transformers")
 
 def create_model():
     """
     Create and return a BERT model instance ready for state dict loading.
-    This function will be called by the model loader.
+    The model loader will handle loading the state dict and setting eval mode.
     """
-    
+    try:
+        from transformers import BertForSequenceClassification
+    except ImportError:
+        raise ImportError("transformers library required for BERT models. Install with: pip install transformers")
     
     # Get the pipeline directory
     pipeline_dir = Path(__file__).parent
@@ -37,6 +36,7 @@ def create_model():
         num_labels=num_labels
     )
     
+    # Return the model instance - state dict loading happens in model_loader.py
     return model
 
 def get_tokenizer():
@@ -44,6 +44,10 @@ def get_tokenizer():
     Get the BERT tokenizer for this model.
     This will be used during preprocessing.
     """
+    try:
+        from transformers import BertTokenizer
+    except ImportError:
+        raise ImportError("transformers library required for BERT models. Install with: pip install transformers")
     
     model_name = "bert-base-uncased"
     tokenizer = BertTokenizer.from_pretrained(model_name)
