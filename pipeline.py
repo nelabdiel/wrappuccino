@@ -20,10 +20,12 @@ class PipelineConfig:
         self.has_vectorizer = False
         self.has_preprocessing = False
         self.has_label_encoder = False
+        self.has_model_architecture = False
         self.model_path: Optional[Path] = None
         self.vectorizer_path: Optional[Path] = None
         self.preprocessing_path: Optional[Path] = None
         self.label_encoder_path: Optional[Path] = None
+        self.model_architecture_path: Optional[Path] = None
         self.model_type: str = "sklearn"  # sklearn, pytorch, onnx
         
         self._validate_pipeline()
@@ -67,7 +69,13 @@ class PipelineConfig:
             self.has_label_encoder = True
             self.label_encoder_path = label_encoder_file
         
-        logger.info(f"Pipeline '{self.name}' validated - Model: ✓, Vectorizer: {'✓' if self.has_vectorizer else '✗'}, Preprocessing: {'✓' if self.has_preprocessing else '✗'}")
+        # Check for optional model architecture (for complex PyTorch models)
+        model_architecture_file = self.path / "model_architecture.py"
+        if model_architecture_file.exists():
+            self.has_model_architecture = True
+            self.model_architecture_path = model_architecture_file
+        
+        logger.info(f"Pipeline '{self.name}' validated - Model: ✓, Vectorizer: {'✓' if self.has_vectorizer else '✗'}, Preprocessing: {'✓' if self.has_preprocessing else '✗'}, Architecture: {'✓' if self.has_model_architecture else '✗'}")
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert pipeline config to dictionary."""
@@ -82,7 +90,8 @@ class PipelineConfig:
             "model_path": str(self.model_path) if self.model_path else None,
             "vectorizer_path": str(self.vectorizer_path) if self.vectorizer_path else None,
             "preprocessing_path": str(self.preprocessing_path) if self.preprocessing_path else None,
-            "label_encoder_path": str(self.label_encoder_path) if self.label_encoder_path else None
+            "label_encoder_path": str(self.label_encoder_path) if self.label_encoder_path else None,
+            "model_architecture_path": str(self.model_architecture_path) if self.model_architecture_path else None
         }
 
 class PipelineManager:

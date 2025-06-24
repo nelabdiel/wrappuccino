@@ -1,18 +1,11 @@
 # **Wrappuccino** — FastAPI ML Pipeline Wrapper
 
-<p align="center">
-  <img src="wrappuccino_logo.png" alt="Wrappuccino Logo" width="200"/>
-</p>
-
-Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model (scikit-learn, PyTorch, or ONNX)—all packaged into a single folder for clarity and reusability.
-
-Wrappuccino’s architecture allows you to **serve multiple models or pipelines simultaneously** through the same API endpoint. Whether you’re A/B testing different versions, comparing frameworks (scikit-learn vs. PyTorch vs. ONNX), or simply offering multiple services (e.g. classification, regression, sentiment analysis), Wrappuccino makes it easy to manage and switch between them without duplicating infrastructure.
+Wrappuccino provides a clean, modular way to deploy full machine learning pipelines as REST APIs using FastAPI and Gunicorn. Each pipeline can consist of a preprocessing script, a vectorizer, and a model—all packaged into a single folder for clarity and reusability.
 
 ---
 
-## Features
+## 🚀 Features
 
-* **Multi-framework support**: Deploy scikit-learn (.pkl), PyTorch (.pth/.pt), and ONNX (.onnx) models
 * **Pipeline-based organization**: Each ML pipeline lives in its own subfolder under `pipelines/`
 * **Optional preprocessing**: Supports modular text transformations before vectorization
 * **Automatic API generation**: REST API with comprehensive endpoint documentation
@@ -21,42 +14,31 @@ Wrappuccino’s architecture allows you to **serve multiple models or pipelines 
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 wrappuccino/
 ├── pipelines/
-│   ├── sentiment_classification/     # Scikit-learn pipeline
-│   │   ├── preprocessing.py          # Custom text preprocessing
-│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
-│   │   └── model.pkl                 # Random Forest classifier
-│   ├── pytorch_sentiment/            # PyTorch pipeline
-│   │   ├── preprocessing.py          # Custom text preprocessing
-│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
-│   │   ├── model.pth                 # PyTorch neural network
-│   │   ├── model_architecture.py     # Model class definition
-│   │   └── label_encoder.pkl         # Label mapping
-│   ├── onnx_sentiment/               # ONNX pipeline
-│   │   ├── preprocessing.py          # Custom text preprocessing
-│   │   ├── vectorizer.pkl            # TF-IDF vectorizer
-│   │   ├── model.onnx                # ONNX optimized model
-│   │   └── label_encoder.pkl         # Label mapping
-│   └── iris_classifier/              # Simple numeric pipeline
-│       └── model.pkl                 # Iris dataset classifier
-├── app.py                            # Main FastAPI application
-├── main.py                           # Application entry point
-├── model_loader.py                   # ML model loading utilities
-├── pipeline.py                       # Pipeline discovery and validation
-└── README.md                         # This file
+│   ├── sentiment_classification/
+│   │   ├── preprocessing.py       # Custom text preprocessing
+│   │   ├── vectorizer.pkl         # TF-IDF vectorizer
+│   │   └── model.pkl              # Random Forest classifier
+│   ├── iris_classifier/
+│   │   └── model.pkl              # Iris dataset classifier
+├── app.py                         # Main FastAPI application
+├── main.py                        # Application entry point
+├── model_loader.py                # ML model loading utilities
+├── pipeline.py                    # Pipeline discovery and validation
+└── README.md                      # This file
 ```
 
 ---
 
-## Quick Start
+## ⚙️ Quick Start
 
-### 1) Install Dependencies
+### 1️⃣ Install Dependencies
 
-Core dependencies are automatically installed:
+The project uses `uv` for dependency management. Dependencies are automatically installed:
 
 - FastAPI
 - uvicorn
@@ -64,24 +46,8 @@ Core dependencies are automatically installed:
 - numpy
 - pydantic
 - requests
-- joblib
 
-**For PyTorch models (.pth/.pt):**
-```bash
-pip install torch torchvision
-```
-
-**For ONNX models (.onnx):**
-```bash
-pip install onnx onnxruntime
-```
-
-**Optional conversion tools:**
-```bash
-pip install onnxmltools skl2onnx  # Convert sklearn to ONNX
-```
-
-### 2) Run the API Server
+### 2️⃣ Run the API Server
 
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 5000 --reload
@@ -92,7 +58,7 @@ Or alternatively:
 python app.py
 ```
 
-### 3) Access the API
+### 3️⃣ Access the API
 
 The server will start on `http://localhost:5000` with the following endpoints:
 
@@ -102,13 +68,13 @@ The server will start on `http://localhost:5000` with the following endpoints:
 - **List Pipelines**: `http://localhost:5000/pipelines`
 - **Make Predictions**: `http://localhost:5000/predict`
 
-## API Usage Examples
+## 📊 API Usage Examples
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
-### `GET /pipelines`
+### 📦 `GET /pipelines`
 
 Returns a list of available pipeline folders.
 
@@ -119,7 +85,7 @@ Returns a list of available pipeline folders.
 }
 ```
 
-### `POST /predict`
+### 🤖 `POST /predict`
 
 Use this endpoint to run predictions via ML pipelines.
 
@@ -128,7 +94,7 @@ Use this endpoint to run predictions via ML pipelines.
 ```json
 {
   "pipeline_name": "sentiment_classification",
-  "text": "Today's working was incredible. I couldn't be happier!"
+  "text": "I love this product! It works perfectly."
 }
 ```
 
@@ -153,7 +119,7 @@ Use this endpoint to run predictions via ML pipelines.
 }
 ```
 
-### `GET /health`
+### 🏥 `GET /health`
 
 Health check endpoint for monitoring.
 
@@ -167,17 +133,17 @@ Health check endpoint for monitoring.
 
 ---
 
-## Adding New Pipelines
+## 🔧 Adding New Pipelines
 
 To add a new ML pipeline, create a folder under `pipelines/` with the following structure:
 
-### Scikit-learn Pipeline:
 ```
-pipelines/your_sklearn_pipeline/
-├── model.pkl              # Required: Trained sklearn model
+pipelines/your_pipeline_name/
+├── model.pkl              # Required: Your trained ML model
 ├── vectorizer.pkl         # Optional: For text processing
 └── preprocessing.py       # Optional: Custom preprocessing functions
 ```
+
 
 ### PyTorch Pipeline:
 ```
@@ -222,56 +188,26 @@ pipelines/your_onnx_pipeline/
    - Must define a `custom_preprocess(text: str) -> str` function
    - Applied before vectorization for domain-specific text cleaning
 
+
 ### Example Pipeline Creation
 
-#### Scikit-learn Model:
 ```python
+# Create and save a model
 from sklearn.ensemble import RandomForestClassifier
-import joblib
+import pickle
 
-# Train and save model
 model = RandomForestClassifier()
 model.fit(X_train, y_train)
-joblib.dump(model, 'pipelines/my_sklearn_pipeline/model.pkl')
-```
 
-#### PyTorch Model:
-```python
-import torch
-import torch.nn as nn
-
-# Define model architecture
-class SentimentClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super().__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, num_classes)
-    
-    def forward(self, x):
-        return self.fc2(self.relu(self.fc1(x)))
-
-# Save model
-model = SentimentClassifier(1000, 128, 2)
-torch.save(model, 'pipelines/my_pytorch_pipeline/model.pth')
-```
-
-#### ONNX Conversion:
-```python
-import torch.onnx
-
-# Convert PyTorch to ONNX
-dummy_input = torch.randn(1, 1000)
-torch.onnx.export(pytorch_model, dummy_input, 
-                  'pipelines/my_onnx_pipeline/model.onnx',
-                  input_names=['input'], output_names=['output'])
+with open('pipelines/my_pipeline/model.pkl', 'wb') as f:
+    pickle.dump(model, f)
 ```
 
 The pipeline will be automatically discovered and available via the API.
 
 ---
 
-## Testing the API
+## 🧪 Testing the API
 
 ### Using curl
 
@@ -290,7 +226,7 @@ curl -X POST http://localhost:5000/predict \
 # Make a prediction with text
 curl -X POST http://localhost:5000/predict \
   -H "Content-Type: application/json" \
-  -d '{"pipeline_name": "sentiment_classification", "Today's working was incredible. I couldn't be happier!"}'
+  -d '{"pipeline_name": "sentiment_classification", "text": "I love this product!"}'
 ```
 
 ### Using Python
@@ -303,78 +239,38 @@ iris_data = {
     "pipeline_name": "iris_classifier",
     "features": [5.1, 3.5, 1.4, 0.2]
 }
-
-# Send request to the prediction endpoint
 response = requests.post("http://localhost:5000/predict", json=iris_data)
 print(response.json())
 
-# Expected response
-{
-  "prediction": 0,
-  "confidence": 0.981583497609436,
-  "preprocessing_applied": false,
-  "vectorizer_applied": false
-}
-
-# Define input text for a sentiment model
+# Test text prediction
 text_data = {
     "pipeline_name": "sentiment_classification",
     "text": "Today's working was incredible. I couldn't be happier!"
 }
-
-# Send request to the prediction endpoint
 response = requests.post("http://localhost:5000/predict", json=text_data)
 print(response.json())
-
-# Expected response
-{
-  "prediction": 1,
-  "confidence": 0.6177903691067675,
-  "preprocessing_applied": true,
-  "vectorizer_applied": true
-}
-
 ```
 
 ---
 
-## Sample Pipelines
+## 📊 Sample Pipelines
 
-### Iris Classifier (Scikit-learn)
+### Iris Classifier
 - **Type**: Numeric features
-- **Model**: `model.pkl` - Random Forest Classifier
 - **Input**: 4 numeric features (sepal length, sepal width, petal length, petal width)
 - **Output**: Species classification (0=setosa, 1=versicolor, 2=virginica)
+- **Model**: Random Forest Classifier
 
-### Sentiment Classification (Scikit-learn)
-- **Type**: Text processing with full pipeline
-- **Model**: `model.pkl` - Random Forest Classifier
-- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.pkl`
+### Sentiment Classification
+- **Type**: Text processing
 - **Input**: Text expressing opinions or sentiments
 - **Output**: Binary classification (0=negative sentiment, 1=positive sentiment)
-- **Pipeline**: Text cleaning → TF-IDF vectorization → Classification
-
-### PyTorch Sentiment Model (Example)
-- **Type**: Deep learning text classification
-- **Model**: `model.pth` - Neural Network
-- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.pth` + `label_encoder.pkl`
-- **Input**: Text data
-- **Output**: Classified sentiment with confidence scores
-- **Pipeline**: Text cleaning → TF-IDF → Neural network → Label decoding
-
-### ONNX Optimized Model (Example)
-- **Type**: Cross-platform optimized inference
-- **Model**: `model.onnx` - Converted from PyTorch/TensorFlow
-- **Components**: `preprocessing.py` + `vectorizer.pkl` + `model.onnx` + `label_encoder.pkl`
-- **Input**: Any supported input format
-- **Output**: Fast, optimized predictions
-- **Pipeline**: Preprocessing → Vectorization → ONNX inference → Label mapping
+- **Features**: Custom preprocessing + TF-IDF vectorization + Random Forest
+- **Preprocessing**: Text cleaning, lowercasing, special character removal
 
 ---
 
-
-
-## Production Deployment
+## 🚀 Production Deployment
 
 For production deployment, use Gunicorn with proper configuration:
 
@@ -382,10 +278,13 @@ For production deployment, use Gunicorn with proper configuration:
 gunicorn --bind 0.0.0.0:5000 --worker-class sync --workers 4 main:app
 ```
 
+### Environment Variables
+
+- `SESSION_SECRET`: Flask session secret key (defaults to "wrappuccino-secret-key")
 
 ---
 
-## Troubleshooting
+## 🔍 Troubleshooting
 
 ### Common Issues
 
@@ -415,14 +314,37 @@ Server logs provide detailed information about:
 
 ---
 
+## 🎯 API Response Format
 
-## License
+All prediction responses follow this format:
+
+```json
+{
+  "pipeline_name": "string",           // Name of the pipeline used
+  "prediction": "any",                 // Model prediction result
+  "confidence": 0.95,                  // Confidence score (0-1, optional)
+  "preprocessing_applied": true,       // Whether preprocessing was used
+  "vectorizer_applied": true          // Whether vectorization was applied
+}
+```
+
+Error responses:
+
+```json
+{
+  "error": "string"                    // Error description
+}
+```
+
+---
+
+## 📝 License
 
 This project is open source and available under the MIT License.
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 To contribute to Wrappuccino:
 
@@ -431,3 +353,7 @@ To contribute to Wrappuccino:
 3. Add your ML pipeline following the structure guidelines
 4. Test your pipeline with the API
 5. Submit a pull request
+
+---
+
+**Happy ML serving with Wrappuccino! ☕🤖**
